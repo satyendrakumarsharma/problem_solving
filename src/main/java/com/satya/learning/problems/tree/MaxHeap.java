@@ -63,12 +63,28 @@ public class MaxHeap<E extends Comparable<E>> {
 		// Move up while Parent is lesser than Child
 		while (parent.data.compareTo(node.data) < 0) {
 			// swap
-			node.parent = parent.parent;
-			node.left   = parent.left;
-			node.right  = parent.right;
+			TreeNode<E> tempNP = node.parent;
+			TreeNode<E> tempNL = node.left;
+			TreeNode<E> tempNR = node.right;
 			
-			parent.left = node.left;
-			parent.right= node.right;
+			node.parent = parent.parent;
+			
+			if (node == parent.left) {
+				node.left.parent = node;
+				node.left = parent;
+			} else {
+				node.left = parent.left;
+			}
+			if (node == parent.right) {
+				node.right = parent;
+				node.right.parent = node;
+			} else {
+				node.right = parent.right;
+			}
+
+			parent.parent = tempNP;
+			parent.left   = tempNL;
+			parent.right  = tempNR;
 			
 			node = parent;
 			parent = parent.parent;
