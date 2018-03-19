@@ -1,7 +1,10 @@
 package com.satya.learn.problem.linear;
 
+import com.satya.learn.problem.linear.LRU.Node;
+
 /**
- * 
+ * Least Recently Used cache implementation:
+ * Page Replacement Algorithm
  * 
  * @author Satyendra
  *
@@ -12,7 +15,7 @@ public class LRU<E> {
 
 	private final int LIMIT;
 
-	private Node<E>[] cache;
+	private Node<E> []cache;
 	private int size = 0;
 	private Node<E> head;
 	private Node<E> tail;
@@ -39,6 +42,7 @@ public class LRU<E> {
 		this(16); // DEFAULT LIMIT
 	}
 
+	@SuppressWarnings("unchecked")
 	public LRU(int limit) {
 		this.LIMIT = limit;
 		this.cache = new Node[LIMIT];
@@ -55,8 +59,8 @@ public class LRU<E> {
 		if (isPageFault) {
 			/**
 			 * PAGE FAULT :
-			 * 1. place new node to front. 
-			 * 2. remove excess node from tail.
+			 * 1. Place new node of page to front. 
+			 * 2. Remove excess node from tail.
 			 */
 			Node<E> newNode = newNode(page);
 			int idxTgt = hashIndexFor(page);
@@ -64,19 +68,38 @@ public class LRU<E> {
 			newNode.next = head;
 			if (head != null) {
 				head.prev = newNode;
+			} else {
+				tail = newNode;
 			}
 			head = newNode;
 			
-			cache[idxTgt] = newNode;
+			cache[idxTgt] = newNode;	// TODO : Place at correct location in chain.
 			size++;
 			
 			removeLeastRecent();
 		} else {
 			/**
 			 * Existing Page : 
-			 * 1. Move the page to front.
+			 * 1. Remove the page from current position of list.
+			 * 2. Place the new node of page to front.
+			 * 2b. IF current position is at tail, then correct the tail.
 			 */
-
+			int idxTgt = hashIndexFor(page);
+			Node<E> existingNode = cache[idxTgt];	// TODO : Get correct node from chain.
+			Node<E> prevNode = existingNode.prev;
+			Node<E> nextNode = existingNode.next;
+			if (prevNode != null) {
+				prevNode.next = existingNode.next;
+			}
+			if (nextNode != null) {
+				nextNode.prev = existingNode.prev;
+			}
+			existingNode.prev = null;
+			existingNode.next = head;
+			head = existingNode;
+			if (existingNode == tail) {
+				tail = tail.prev;
+			}
 		}
 	}
 
@@ -135,4 +158,21 @@ public class LRU<E> {
 	public int size() {
 		return size;
 	}
+	
+	@Override
+	public String toString() {
+		StringBuilder sb = new StringBuilder();
+		sb.append("CACHE:").append("\n");
+		for (int i = 0; i < LIMIT; i++) {
+			sb.append((cache[i] == null ? "NULL" : cache[i].page+"-"+cache[i].page.hashCode()) + ", ");
+		}
+		sb.append("\nLIST:").append("\n");
+		Node<E> node = head;
+		while(node != null) {
+			sb.append("[" + node.page + "], ");
+			node = node.next;
+		}
+		return sb.toString();
+	}
+	
 }
