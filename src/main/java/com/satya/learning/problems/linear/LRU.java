@@ -1,7 +1,5 @@
 package com.satya.learn.problem.linear;
 
-import com.satya.learn.problem.linear.LRU.Node;
-
 /**
  * Least Recently Used cache implementation:
  * Page Replacement Algorithm
@@ -24,6 +22,7 @@ public class LRU<E> {
 		private E page;
 		private Node<E> prev;
 		private Node<E> next;
+		private Node<E> chainNext;
 
 		public Node(E data) {
 			this.page = data;
@@ -34,7 +33,14 @@ public class LRU<E> {
 		}
 
 		public boolean equals(Object obj) {
+			if (this == obj) {
+				return true;
+			}
 			return page.equals(obj);
+		}
+		@Override
+		public String toString() {
+			return page.toString();
 		}
 	}
 
@@ -55,7 +61,8 @@ public class LRU<E> {
 	 *            target page.
 	 */
 	public void insert(E page) {
-		boolean isPageFault = isPageFault(page);
+		int idxTgt = hashIndexFor(page);
+		boolean isPageFault = isPageFault(page, idxTgt);
 		if (isPageFault) {
 			/**
 			 * PAGE FAULT :
@@ -63,7 +70,6 @@ public class LRU<E> {
 			 * 2. Remove excess node from tail.
 			 */
 			Node<E> newNode = newNode(page);
-			int idxTgt = hashIndexFor(page);
 
 			newNode.next = head;
 			if (head != null) {
@@ -73,7 +79,7 @@ public class LRU<E> {
 			}
 			head = newNode;
 			
-			cache[idxTgt] = newNode;	// TODO : Place at correct location in chain.
+			placeInChain(newNode, idxTgt);
 			size++;
 			
 			removeLeastRecent();
@@ -84,15 +90,14 @@ public class LRU<E> {
 			 * 2. Place the new node of page to front.
 			 * 2b. IF current position is at tail, then correct the tail.
 			 */
-			int idxTgt = hashIndexFor(page);
 			Node<E> existingNode = cache[idxTgt];	// TODO : Get correct node from chain.
 			Node<E> prevNode = existingNode.prev;
 			Node<E> nextNode = existingNode.next;
 			if (prevNode != null) {
-				prevNode.next = existingNode.next;
+				prevNode.next = nextNode;
 			}
 			if (nextNode != null) {
-				nextNode.prev = existingNode.prev;
+				nextNode.prev = prevNode;
 			}
 			existingNode.prev = null;
 			existingNode.next = head;
@@ -103,15 +108,45 @@ public class LRU<E> {
 		}
 	}
 
+	/**
+	 * This method places the node at given index, and ensures that chaining is maintained.
+	 * 
+	 * @param newNode the node to be placed
+	 * @param idxTgt index of cache
+	 */
+	private void placeInChain(Node<E> newNode, int idxTgt) {
+		Node<E> chain = cache[idxTgt];
+		cache[idxTgt] = newNode;	// Place at chain-head.
+		newNode.chainNext = chain;
+	}
+
 	private void removeLeastRecent() {
 		if (size > LIMIT) {
 			if (tail != null) {
-				if (tail.prev != null) {
-					tail.prev.next = null; // un-plug from tail
+				E page = tail.page;
+				int idxTail = hashIndexFor(page);
+				Node<E> node = cache[idxTail];
+				if (node != null) {
+					if (node.equals(page)) {
+						cache[idxTail] = node.chainNext;
+					} else {
+						Node<E> p = node;
+						node = node.chainNext;
+						while (node != null) {
+							if (node.equals(page)) {
+								p.chainNext = node.chainNext;
+							}
+							p = node;
+							node = node.chainNext;
+						}
+					}
 				}
-				int idxTail = hashIndexFor(tail.page);
-				cache[idxTail] = null; // for GC
-				// TODO : remove only this element from chain.
+				
+				Node<E> secondLast = tail.prev;
+				if (secondLast != null) {
+					secondLast.next = null; // un-plug from tail
+				}
+				tail = secondLast;	// shift tail to second-last
 			}
 			size--;
 		}
@@ -132,16 +167,23 @@ public class LRU<E> {
 
 	/**
 	 * This method identifies if the requested page is available in page or is
-	 * it a Page Fault.
+	 * it a Page Fault.<br/>
+	 * <b>Page Fault</b>: Given page not available in cache, needs to be fetched.
 	 * 
 	 * @param page
 	 *            the targeted page
 	 * @return
 	 */
-	private boolean isPageFault(E page) {
-		int idxTgt = hashIndexFor(page);
-		Node<E> targetNode = cache[idxTgt];
-		return targetNode == null || !targetNode.page.equals(page);
+	private boolean isPageFault(E page, int idxTgt) {
+		Node<E> chainHead = cache[idxTgt];
+		Node<E> node = chainHead;
+		while (node != null) {
+			if (node.equals(page)) {
+				return false;
+			}
+			node = node.chainNext;
+		}
+		return true;
 	}
 
 	/**
@@ -161,17 +203,26 @@ public class LRU<E> {
 	
 	@Override
 	public String toString() {
-		StringBuilder sb = new StringBuilder();
-		sb.append("CACHE:").append("\n");
+		StringBuilder sb = new StringBuilder(">>>\n");
+		sb.append("CACHE:\n");
 		for (int i = 0; i < LIMIT; i++) {
-			sb.append((cache[i] == null ? "NULL" : cache[i].page+"-"+cache[i].page.hashCode()) + ", ");
+			Node<E> chainNode = cache[i];
+			sb.append(i + ": ");
+			while (chainNode != null) {
+				sb.append("[" + chainNode.page + "] -> ");
+				chainNode = chainNode.chainNext;
+			}
+			sb.append("NULL\n");
 		}
-		sb.append("\nLIST:").append("\n");
-		Node<E> node = head;
-		while(node != null) {
-			sb.append("[" + node.page + "], ");
-			node = node.next;
+		sb.append("\nLRU:\n");
+		Node<E> lruNode = head;
+		sb.append("[HEAD] -> ");
+		while(lruNode != null) {
+			sb.append("[" + lruNode.page + "] -> ");
+			lruNode = lruNode.next;
 		}
+		sb.append("[TAIL]");
+		sb.append("\n<<<");
 		return sb.toString();
 	}
 	
