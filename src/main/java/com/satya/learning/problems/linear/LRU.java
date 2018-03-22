@@ -1,6 +1,4 @@
-package com.satya.learn.problem.linear;
-
-import com.satya.learn.problem.linear.LRU.Node;
+package com.satya.learning.problems.linear;
 
 /**
  * Least Recently Used cache implementation:
