@@ -1,5 +1,7 @@
 package com.satya.learn.problem.linear;
 
+import com.satya.learn.problem.linear.LRU.Node;
+
 /**
  * Least Recently Used cache implementation:
  * Page Replacement Algorithm
@@ -62,8 +64,8 @@ public class LRU<E> {
 	 */
 	public void insert(E page) {
 		int idxTgt = hashIndexFor(page);
-		boolean isPageFault = isPageFault(page, idxTgt);
-		if (isPageFault) {
+		Node<E> pageInCache = cachedPage(page, idxTgt);
+		if (pageInCache == null) {
 			/**
 			 * PAGE FAULT :
 			 * 1. Place new node of page to front. 
@@ -90,20 +92,24 @@ public class LRU<E> {
 			 * 2. Place the new node of page to front.
 			 * 2b. IF current position is at tail, then correct the tail.
 			 */
-			Node<E> existingNode = cache[idxTgt];	// TODO : Get correct node from chain.
+			Node<E> existingNode = pageInCache;
+			if (existingNode == head) { 
+				return;	// No operations for the page already at head
+			}
 			Node<E> prevNode = existingNode.prev;
 			Node<E> nextNode = existingNode.next;
+			// Pull out the node from current location
 			if (prevNode != null) {
 				prevNode.next = nextNode;
 			}
 			if (nextNode != null) {
 				nextNode.prev = prevNode;
 			}
-			existingNode.prev = null;
-			existingNode.next = head;
-			head = existingNode;
+			existingNode.next = head;	// Placed just before head 
+			existingNode.prev = null;	// Nothing before first page
+			head = existingNode;		// Head redirected to first page
 			if (existingNode == tail) {
-				tail = tail.prev;
+				tail = tail.prev;		// Tail nodes move second-last to last
 			}
 		}
 	}
@@ -121,35 +127,36 @@ public class LRU<E> {
 	}
 
 	private void removeLeastRecent() {
-		if (size > LIMIT) {
-			if (tail != null) {
-				E page = tail.page;
-				int idxTail = hashIndexFor(page);
-				Node<E> node = cache[idxTail];
-				if (node != null) {
-					if (node.equals(page)) {
-						cache[idxTail] = node.chainNext;
-					} else {
-						Node<E> p = node;
-						node = node.chainNext;
-						while (node != null) {
-							if (node.equals(page)) {
-								p.chainNext = node.chainNext;
-							}
-							p = node;
-							node = node.chainNext;
+		if (size <= LIMIT) {
+			return;
+		}
+		if (tail != null) {
+			E page = tail.page;
+			int idxTail = hashIndexFor(page);
+			Node<E> node = cache[idxTail];
+			if (node != null) {
+				if (node.equals(page)) {
+					cache[idxTail] = node.chainNext;
+				} else {
+					Node<E> p = node;
+					node = node.chainNext;
+					while (node != null) {
+						if (node.equals(page)) {
+							p.chainNext = node.chainNext;
 						}
+						p = node;
+						node = node.chainNext;
 					}
 				}
-				
-				Node<E> secondLast = tail.prev;
-				if (secondLast != null) {
-					secondLast.next = null; // un-plug from tail
-				}
-				tail = secondLast;	// shift tail to second-last
 			}
-			size--;
+			
+			Node<E> secondLast = tail.prev;
+			if (secondLast != null) {
+				secondLast.next = null; // un-plug from tail
+			}
+			tail = secondLast;	// shift tail to second-last
 		}
+		size--;
 	}
 
 	/**
@@ -172,18 +179,18 @@ public class LRU<E> {
 	 * 
 	 * @param page
 	 *            the targeted page
-	 * @return
+	 * @return the {@code Node} if it exists, else null for PageFault
 	 */
-	private boolean isPageFault(E page, int idxTgt) {
+	private Node<E> cachedPage(E page, int idxTgt) {
 		Node<E> chainHead = cache[idxTgt];
 		Node<E> node = chainHead;
 		while (node != null) {
 			if (node.equals(page)) {
-				return false;
+				return node;
 			}
 			node = node.chainNext;
 		}
-		return true;
+		return null;
 	}
 
 	/**
