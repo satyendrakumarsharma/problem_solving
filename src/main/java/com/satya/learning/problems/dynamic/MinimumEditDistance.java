@@ -6,12 +6,11 @@ import java.util.Scanner;
  * Given two Strings, calculate the minimum number of edits needed in first
  * string to get converted into the second string.
  * <p>
- * Edit : Insert or Remvoe or Update
+ * Edit : Insert or Remove or Update
  * 
- * <p>
- * GeekForGeeks: <a href=
- * "http://www.geeksforgeeks.org/dynamic-programming-set-5-edit-distance">Mininum
- * Edit Distance</a>
+ * @see GeekForGeeks: <a href=
+ *      "http://www.geeksforgeeks.org/dynamic-programming-set-5-edit-distance">Mininum
+ *      Edit Distance</a>
  * 
  * @author Satyendra
  *
