@@ -31,7 +31,7 @@ public class LinkedListCycle {
 		if (head == null) {
 			return false;
 		}
-		SinglyLinkedNode<?> slow = head;
+		SinglyLinkedNode<Integer> slow = head;
 		SinglyLinkedNode<Integer> fast = head.getNext();
 
 		while (slow != fast) {
